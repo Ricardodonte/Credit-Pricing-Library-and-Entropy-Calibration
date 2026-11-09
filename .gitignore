@@ -1,0 +1,9 @@
+cmake-build-*/
+.idea/
+build/
+*.o
+*.obj
+*.exe
+*.a
+CODEBASE_MAP.md
+guide_architecture_credit_lib.md
