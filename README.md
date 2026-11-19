@@ -2,6 +2,8 @@
 
 This repository brings together two parts of my master's thesis on the pricing of credit default swaps and index tranches. The first is a C++20 library for curve construction and credit derivatives pricing. The second is a Python implementation of a non-parametric approach to calibrating portfolio loss distributions by minimizing relative entropy.
 
+[Read the full master's thesis (PDF)](./Master_Thesis_Ricardo_DONTE.pdf)
+
 ## Credit derivatives pricing library
 
 The [C++ library](./Credit%20Derivatives%20Pricing%20Library) is header-only. It separates instruments, curves, loss models and pricing engines so that the same pricing components can be used with different portfolio loss models.
