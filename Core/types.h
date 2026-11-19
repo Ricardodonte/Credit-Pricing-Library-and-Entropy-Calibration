@@ -10,14 +10,12 @@
 
 namespace Core {
 
-
     struct Point {
         double time;
         double value;
     };
 
     enum class DayCount { ACT_360, ACT_365, DC_30_360 };
-
 
     inline double year_fraction(const Date& d1, const Date& d2, const DayCount dc) {
         switch (dc) {

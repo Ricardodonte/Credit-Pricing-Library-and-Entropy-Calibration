@@ -83,6 +83,12 @@ Date Date::add_days(const int days) const
     return Date(m_jdn + days);
 }
 
+    Date Date::remove_days(const int days) const
+{
+    return Date(m_jdn - days);;
+}
+
+
 Date Date::add_months(const int n_months) const
 {
     if (n_months == 0) return *this;
@@ -119,6 +125,17 @@ Date Date::add_months(const double n_months) const
     }
 
     return result;
+}
+
+    std::string Date::to_string() const {
+    auto [y, m, d] = fromJDN(m_jdn);
+
+    std::ostringstream oss;
+    oss << std::setfill('0')
+        << std::setw(4) << y << "-"
+        << std::setw(2) << m << "-"
+        << std::setw(2) << d;
+    return oss.str();
 }
 
 }

@@ -1,0 +1,13 @@
+# CLion / JetBrains
+.idea/
+
+# Build
+cmake-build-*/
+build/
+
+# Fichiers temporaires
+*.log
+*.tmp
+
+# OS
+.DS_Store

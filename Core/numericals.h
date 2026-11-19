@@ -2,9 +2,7 @@
 // Created by ricar on 10/04/2026.
 //
 
-//
-// Created by ricardo on 25‏/3‏/2026.
-//
+
 
 #pragma once
 #include <algorithm>
@@ -16,8 +14,6 @@ namespace MathConstants {
     static constexpr double INV_SQRT2    = 0.70710678118654752440;
     static constexpr double INV_SQRT_2PI = 0.39894228040143267794;
 }
-
-
 
 namespace Core {
 
@@ -150,7 +146,7 @@ inline double norm_inv(double p) {
     return x;
 }
 
-inline double bivariate_norm_cdf(double a, double b, double rho) noexcept {
+inline double bivariate_norm_cdf(const double a, const double b, const double rho) noexcept {
 
     static constexpr int    N_GL = 10;
     static constexpr double GL_X[N_GL] = {
@@ -249,6 +245,7 @@ static constexpr double GH_NODES[N_GH] = {
      2.78880605842813,  3.34785456235800,  3.94476404011562,
      4.60368244955074,  5.38748089001123
 };
+
 static constexpr double GH_WEIGHTS[N_GH] = {
     2.22939364553415e-13, 4.39934099227318e-10, 1.08606937076928e-07,
     7.80255647853206e-06, 2.28338636016353e-04, 3.24377334223786e-03,
@@ -258,6 +255,5 @@ static constexpr double GH_WEIGHTS[N_GH] = {
     2.28338636016353e-04, 7.80255647853206e-06, 1.08606937076928e-07,
     4.39934099227318e-10, 2.22939364553415e-13
 };
-
 
 }

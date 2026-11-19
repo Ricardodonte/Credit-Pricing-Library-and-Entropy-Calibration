@@ -4,7 +4,7 @@
 
 #include "tranche_book_pricer.h"
 
-#include "Market/BaseCorrelationCurve.h"
+#include "../Market/Curves/Tranches/BaseCorrelationCurve.h"
 
 namespace Pricer {
 
@@ -24,10 +24,6 @@ namespace Pricer {
 
         return res;
 
-
     }
-    
-
-
 
 }
