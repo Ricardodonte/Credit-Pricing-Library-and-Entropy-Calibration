@@ -1,39 +1,52 @@
 //
-// Created by ricar on 10/04/2026.
+// Created by ricar on 11/09/2026.
+//
 //
 
-
-
 #pragma once
+
 #include <algorithm>
-#include <stdexcept>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
 
 namespace MathConstants {
-    static constexpr double PI           = 3.14159265358979323846;
-    static constexpr double INV_SQRT2    = 0.70710678118654752440;
-    static constexpr double INV_SQRT_2PI = 0.39894228040143267794;
+    inline constexpr double PI           = 3.14159265358979323846;
+    inline constexpr double SQRT2        = 1.41421356237309504880;
+    inline constexpr double INV_SQRT2    = 0.70710678118654752440;
+    inline constexpr double INV_SQRT_2PI = 0.39894228040143267794;
+    inline constexpr double INV_SQRT_PI  = 0.56418958354775628695;
 }
 
 namespace Core {
 
     class NewtonRaphson {
         public:
-
         NewtonRaphson() = delete;
         NewtonRaphson(const double tol, const int iter_max) : m_tol(tol), m_iter_max(iter_max) {
         }
 
+        /// @brief Solve f(x) = 0. f_and_df(x) return a pair {f(x), f'(x)}.
+        ///        [lower, upper] : optional bounds on the values of x (none by default).
         template<typename F>
-        double solve(F&& f_and_df, const double x0) const {
-            double x = x0;
+        [[nodiscard]] double solve(F&& f_and_df, const double x0,
+                                   const double lower = -std::numeric_limits<double>::infinity(),
+                                   const double upper =  std::numeric_limits<double>::infinity()) const {
+            if (!(lower <= upper))
+                throw std::invalid_argument("NewtonRaphson : lower bound must be <= upper bound");
+            double x = std::clamp(x0, lower, upper);
             for (int i = 0; i < m_iter_max; ++i) {
-                auto [f, df] = f_and_df(x);
-                if (std::abs(f) < m_tol) break;
-                x -= f / df;
-                x  = std::max(x, 1e-6);
+                const auto [f, df] = f_and_df(x);
+                if (std::abs(f) < m_tol) return x;
+                if (df == 0.0 || !std::isfinite(df))
+                    throw std::runtime_error("NewtonRaphson : null or non-finite derivative");
+                const double x_new = std::clamp(x - f / df, lower, upper);
+                if (x_new == x)
+                    throw std::runtime_error("NewtonRaphson : stuck on a bound, no root found");
+                if (std::abs(x_new - x) < m_tol * (1.0 + std::abs(x))) return x_new;
+                x = x_new;
             }
-            return x;
+            throw std::runtime_error("NewtonRaphson : No convergence of the algorithm");
         }
 
         private:
@@ -46,11 +59,11 @@ namespace Core {
         Brent() = delete;
         Brent(const double tol, const int iter_max) : m_tol(tol), m_iter_max(iter_max) {
         }
+        /// @brief Solve f(x) = 0. f return a functional f.
+        ///
 
         template<typename F>
-
-         double solve(F&& f, double a, double b) {
-
+        [[nodiscard]] double solve(F&& f, double a, double b) const {
                 double fa = f(a), fb = f(b);
                 if (fa * fb > 0.0)
                     throw std::runtime_error("Brent : f(a) and f(b) got the same sign ");
@@ -86,23 +99,40 @@ namespace Core {
                 }
                 throw std::runtime_error("Brent : No convergence of the algorithm");
             }
-
-
     private:
         double m_tol;
         int m_iter_max;
     };
 
-
-    inline double norm_cdf(double x) noexcept {
-    return 0.5 * std::erfc(-x * MathConstants::INV_SQRT2);
+    /// @brief Standard normal cumulative distribution (West / Hart double precision algorithm).
+    [[nodiscard]] inline double norm_cdf(double x) noexcept {
+    const double z = std::abs(x);
+    double c = 0.0;
+    if (z <= 37.0) {
+        const double e = std::exp(-0.5 * z * z);
+        if (z < 7.07106781186547) {
+            const double n = ((((((0.0352624965998911 * z + 0.700383064443688) * z + 6.37396220353165) * z
+                               + 33.912866078383) * z + 112.079291497871) * z + 221.213596169931) * z
+                               + 220.206867912376);
+            const double d = (((((((0.0883883476483184 * z + 1.75566716318264) * z + 16.064177579207) * z
+                               + 86.7807322029461) * z + 296.564248779674) * z + 637.333633378831) * z
+                               + 793.826512519948) * z + 440.413735824752);
+            c = e * n / d;
+        } else {
+            const double d = z + 1.0 / (z + 2.0 / (z + 3.0 / (z + 4.0 / (z + 0.65))));
+            c = e / d / 2.506628274631;
+        }
+    }
+    if (std::isnan(x)) return x;
+    return x <= 0.0 ? c : 1.0 - c;
 }
 
-inline double norm_pdf(double x) noexcept {
+[[nodiscard]] inline double norm_pdf(double x) noexcept {
     return MathConstants::INV_SQRT_2PI * std::exp(-0.5 * x * x);
 }
 
-inline double norm_inv(double p) {
+/// @brief Guaussian law inverse (Acklam algorithm, relative precision of ~1.15e-9).
+[[nodiscard]] inline double norm_inv(double p) {
     if (p <= 0.0 || p >= 1.0)
         throw std::domain_error("norm_inv: p must be in (0,1)");
 
@@ -146,7 +176,9 @@ inline double norm_inv(double p) {
     return x;
 }
 
-inline double bivariate_norm_cdf(const double a, const double b, const double rho) noexcept {
+/// @brief P(X < a, Y < b) for (X, Y) bivariate guassian law with correlation rho.
+///        Drezner-Wesolowsky / Genz (BVND) algorthm , Legendre gauss with 20 points.
+[[nodiscard]] inline double bivariate_norm_cdf(const double a, const double b, const double rho) noexcept {
 
     static constexpr int    N_GL = 10;
     static constexpr double GL_X[N_GL] = {
@@ -209,17 +241,18 @@ inline double bivariate_norm_cdf(const double a, const double b, const double rh
                  * norm_cdf(-b2/a2) * b2
                  * (1.0 - c*bs*(1.0 - d_*bs/5.0)/3.0);
         }
-
         a2 *= 0.5;
         for (int i = 0; i < N_GL; ++i) {
             for (int sg : {-1, 1}) {
                 const double xs  = a2 * (GL_X[i]*sg + 1.0);
-                const double rs  = std::sqrt(bs + xs*xs);
-                const double as3 = -(bs + xs*xs)/(2.0*ass) - hk*0.5;
-                if (as3 > -100.0)
-                    bvn += a2 * GL_W[i] * std::exp(as3)
-                         * (std::exp(-hk*(1.0-rs)/(2.0*(1.0+rs))) / rs
-                            - (1.0 + c*xs*xs*(1.0 + d_*xs*xs)));
+                const double xs2 = xs * xs;
+                const double rs  = std::sqrt(1.0 - xs2);
+                const double asr = -(bs / xs2 + hk) * 0.5;
+                if (asr > -100.0) {
+                    const double sp = 1.0 + c * xs2 * (1.0 + d_ * xs2);
+                    const double ep = std::exp(-hk * (1.0 - rs) / (2.0 * (1.0 + rs))) / rs;
+                    bvn += a2 * GL_W[i] * std::exp(asr) * (ep - sp);
+                }
             }
         }
         bvn = -bvn / (2.0 * MathConstants::PI);
@@ -235,8 +268,9 @@ inline double bivariate_norm_cdf(const double a, const double b, const double rh
     return std::clamp(bvn, 0.0, 1.0);
 }
 
-static constexpr int    N_GH = 20;
-static constexpr double GH_NODES[N_GH] = {
+// Gauss-Hermite with 20 points ∫ e^{-x²} f(x) dx ≈ Σ w_i f(x_i).
+inline constexpr int    N_GH = 20;
+inline constexpr double GH_NODES[N_GH] = {
     -5.38748089001123, -4.60368244955074, -3.94476404011562,
     -3.34785456235800, -2.78880605842813, -2.25497400208928,
     -1.73853771211659, -1.23407621539532, -0.73747372854539,
@@ -245,8 +279,7 @@ static constexpr double GH_NODES[N_GH] = {
      2.78880605842813,  3.34785456235800,  3.94476404011562,
      4.60368244955074,  5.38748089001123
 };
-
-static constexpr double GH_WEIGHTS[N_GH] = {
+inline constexpr double GH_WEIGHTS[N_GH] = {
     2.22939364553415e-13, 4.39934099227318e-10, 1.08606937076928e-07,
     7.80255647853206e-06, 2.28338636016353e-04, 3.24377334223786e-03,
     2.48105208874636e-02, 1.09017206020023e-01, 2.86675505362834e-01,
@@ -255,5 +288,15 @@ static constexpr double GH_WEIGHTS[N_GH] = {
     2.28338636016353e-04, 7.80255647853206e-06, 1.08606937076928e-07,
     4.39934099227318e-10, 2.22939364553415e-13
 };
+
+/// @brief E[f(Z)] with Z ~ N(0,1), with 20 points Gauss-Hermite algorithm.
+template<typename F>
+[[nodiscard]] double gauss_hermite_normal_expectation(F&& f) {
+    double sum = 0.0;
+    for (int i = 0; i < N_GH; ++i) {
+        sum += GH_WEIGHTS[i] * f(MathConstants::SQRT2 * GH_NODES[i]);
+    }
+    return sum * MathConstants::INV_SQRT_PI;
+}
 
 }
