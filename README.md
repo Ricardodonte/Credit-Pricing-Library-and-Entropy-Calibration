@@ -62,4 +62,4 @@ Open [the notebook](./Kullback%20based%20calibration%20and%20pricing/cdx-5y-cali
 
 ## README disclosure
 
-This README was written by ChatGPT after reviewing the code, notebooks, and project structure in this repository.
+This README was written by ChatGPT after reviewing the code, notebooks, and project structure in this repository. The text was reviewed and reflect what I have done in this work
